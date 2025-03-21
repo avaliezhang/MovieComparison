@@ -1,0 +1,32 @@
+# Build results
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+[Ll]ogs/
+
+# Visual Studio files
+.vs/
+*.user
+*.userosscache
+*.suo
+
+# Rider files
+.idea/
+*.sln.iml
+
+# User secrets
+*.usersecrets.json
+
+# Local appsettings with sensitive data
+appsettings.Development.json
+appsettings.local.json
+
+# macOS specific files
+.DS_Store
+
+# Windows specific files
+Thumbs.db
+
+# Code coverage results
+[Cc]overage/
+*.coverage
