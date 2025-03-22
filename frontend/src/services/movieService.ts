@@ -1,9 +1,7 @@
 import axios from 'axios';
-import { Movie, MovieDetail } from '../types/movie';
+import { CombinedMovie, PriceComparison } from '../types/movie';
 
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
-
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5249/api';
 
 const apiClient = axios.create({
   baseURL: API_URL,
@@ -12,29 +10,24 @@ const apiClient = axios.create({
   },
 });
 
-
-export const getMovies = async (): Promise<Movie[]> => {
+export const getCombinedMovies = async (): Promise<CombinedMovie[]> => {
   try {
-    const response = await apiClient.get<Movie[]>('/movies');
+ 
+    const response = await apiClient.get<CombinedMovie[]>('/movies');
     return response.data;
   } catch (error) {
-    console.error('Error fetching movies:', error);
+    console.error('error fetching combined movies:', error);
     return [];
   }
 };
 
-
-export const getMovieDetails = async (
-  cinemaWorldId: string, 
-  filmWorldId: string
-): Promise<MovieDetail | null> => {
+export const getMoviePrice = async (cinemaWorldId: string, filmWorldId: string): Promise<PriceComparison> => {
   try {
-    const response = await apiClient.get<MovieDetail>(
-      `/movies/${cinemaWorldId}/${filmWorldId}`
-    );
+    console.log(`Fetching price for CW:${cinemaWorldId}, FW:${filmWorldId}`);
+    const response = await apiClient.get<PriceComparison>(`/movies/price/${cinemaWorldId}/${filmWorldId}`);
     return response.data;
   } catch (error) {
-    console.error('Error fetching movie details:', error);
-    return null;
+    console.error('error fetching movie price:', error);
+    throw error;
   }
 };

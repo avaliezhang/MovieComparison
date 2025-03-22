@@ -26,7 +26,6 @@ namespace MovieComparison.API.Services
             _logger = logger;
             _settings = options.Value;
 
-            // Configure the HttpClient with the base address and headers
             _httpClient.BaseAddress = new Uri(_settings.CinemaWorldBaseUrl);
             _httpClient.DefaultRequestHeaders.Accept.Clear();
             _httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
@@ -37,7 +36,7 @@ namespace MovieComparison.API.Services
         {
             try
             {
-                // Use .NET 8's HttpClient extensions
+             
                 var content = await _httpClient.GetStringAsync("movies");
                 
                 var movieResponse = JsonSerializer.Deserialize<MovieResponse>(content, new JsonSerializerOptions

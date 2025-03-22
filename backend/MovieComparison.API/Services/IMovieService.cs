@@ -4,9 +4,9 @@ using System.Threading.Tasks;
 
 namespace MovieComparison.API.Services
 {
-    public interface IMovieService
-    {
-        Task<List<ComparisonResult>> GetMovieComparisonsAsync();
-        Task<ComparisonResult?> GetMovieComparisonAsync(string cinemaWorldId, string filmWorldId);
-    }
+   public interface IMovieService
+{
+    Task<List<CombinedMovie>> GetCombinedMoviesAsync();
+    Task<PriceComparison?> GetMoviePriceComparisonAsync(string cinemaWorldId, string filmWorldId);
+}
 }

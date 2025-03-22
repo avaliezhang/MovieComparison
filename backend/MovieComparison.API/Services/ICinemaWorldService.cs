@@ -7,6 +7,6 @@ namespace MovieComparison.API.Services
     public interface ICinemaWorldService
     {
         Task<List<Movie>> GetMoviesAsync();
-        Task<MovieDetail> GetMovieAsync(string id);
+        Task<MovieDetail?> GetMovieAsync(string id);
     }
 }

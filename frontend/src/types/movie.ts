@@ -1,28 +1,33 @@
-export interface Movie {
+export interface CombinedMovie {
+  id: string;
+  title: string;
+  year: string;
+  poster?: string;
+  cinemaWorld: {
     id: string;
-    title: string;
-    year: number;
-    poster: string;
-    cinemaWorld: ProviderPrice;
-    filmWorld: ProviderPrice;
-    bestProvider: string;
-    bestPrice: number;
-  }
-  
-  export interface ProviderPrice {
+    isAvailable: boolean;
+  };
+  filmWorld: {
+    id: string;
+    isAvailable: boolean;
+  };
+}
+
+export interface PriceComparison {
+  id: string;
+  title: string;
+  year: string;
+  poster?: string;
+  cinemaWorld: {
     id: string;
     price: number;
     isAvailable: boolean;
-  }
-  
-  export interface MovieDetail extends Movie {
-    rated?: string;
-    released?: string;
-    runtime?: string;
-    genre?: string;
-    director?: string;
-    plot?: string;
-    actors?: string;
-    language?: string;
-    country?: string;
-  }
+  };
+  filmWorld: {
+    id: string;
+    price: number;
+    isAvailable: boolean;
+  };
+  bestProvider: string;
+  bestPrice: number;
+}

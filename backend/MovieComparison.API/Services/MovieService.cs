@@ -2,6 +2,7 @@ using Microsoft.Extensions.Logging;
 using MovieComparison.API.Models;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -23,150 +24,134 @@ namespace MovieComparison.API.Services
             _logger = logger;
         }
 
-        public async Task<List<ComparisonResult>> GetMovieComparisonsAsync()
+        public async Task<List<CombinedMovie>> GetCombinedMoviesAsync()
         {
             try
             {
-                // Execute API calls in parallel
+                 
                 var cinemaWorldTask = _cinemaWorldService.GetMoviesAsync();
                 var filmWorldTask = _filmWorldService.GetMoviesAsync();
 
-                // Wait for both tasks to complete, regardless of whether they succeed or fail
                 await Task.WhenAll(cinemaWorldTask, filmWorldTask);
 
-                var cinemaWorldMovies = cinemaWorldTask.Result;
-                var filmWorldMovies = filmWorldTask.Result;
+                var cinemaWorldMovies = cinemaWorldTask.Result ?? new List<Movie>();
+                var filmWorldMovies = filmWorldTask.Result ?? new List<Movie>();
 
-                // Match movies by title and year
-                var matchedMovies = from cwMovie in cinemaWorldMovies
-                                    join fwMovie in filmWorldMovies
-                                    on new { cwMovie.Title, cwMovie.Year } equals new { fwMovie.Title, fwMovie.Year }
-                                    select new { CinemaWorldMovie = cwMovie, FilmWorldMovie = fwMovie };
+                var matchedMovies = (from cwMovie in cinemaWorldMovies
+                                   join fwMovie in filmWorldMovies
+                                   on new { cwMovie.Title, cwMovie.Year } 
+                                   equals new { fwMovie.Title, fwMovie.Year }
+                                   select new CombinedMovie
+                                   {
+                                       ID = cwMovie.ID,
+                                       Title = cwMovie.Title,
+                                       Year = cwMovie.Year,
+                                       Poster = cwMovie.Poster ?? fwMovie.Poster ?? string.Empty,
+                                       CinemaWorld = new ProviderID
+                                       {
+                                           ID = cwMovie.ID,
+                                           IsAvailable = true
+                                       },
+                                       FilmWorld = new ProviderID
+                                       {
+                                           ID = fwMovie.ID,
+                                           IsAvailable = true
+                                       }
+                                   }).ToList();
 
-                // Get details for each matched movie
-                var comparisonResults = new List<ComparisonResult>();
-                
-                foreach (var match in matchedMovies)
-                {
-                    var comparison = await GetMovieComparisonAsync(match.CinemaWorldMovie.ID, match.FilmWorldMovie.ID);
-                    if (comparison != null)
-                    {
-                        comparisonResults.Add(comparison);
-                    }
-                }
-
-                return comparisonResults;
+                return matchedMovies;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error getting movie comparisons");
-                return new List<ComparisonResult>();
+                _logger.LogError(ex, "error getting movie list");
+                return new List<CombinedMovie>();
             }
         }
 
-        public async Task<ComparisonResult?> GetMovieComparisonAsync(string cinemaWorldId, string filmWorldId)
+        public async Task<PriceComparison?> GetMoviePriceComparisonAsync(string cinemaWorldId, string filmWorldId)
         {
             try
             {
+                
                 var cinemaWorldTask = _cinemaWorldService.GetMovieAsync(cinemaWorldId);
                 var filmWorldTask = _filmWorldService.GetMovieAsync(filmWorldId);
-
-                // Wait for both tasks to complete, regardless of whether they succeed or fail
+                
                 await Task.WhenAll(cinemaWorldTask, filmWorldTask);
-
+                
                 var cinemaWorldMovie = cinemaWorldTask.Result;
                 var filmWorldMovie = filmWorldTask.Result;
-
-                // If both services failed, return null
+                
+             
                 if (cinemaWorldMovie == null && filmWorldMovie == null)
                 {
                     return null;
                 }
 
-                // Create the comparison result using available data
-                var result = new ComparisonResult
+                
+                decimal cinemaWorldPrice = 0;
+                decimal filmWorldPrice = 0;
+                
+                if (cinemaWorldMovie?.Price != null)
                 {
-                    ID = cinemaWorldMovie?.ID ?? filmWorldMovie?.ID ?? string.Empty,
+                    decimal.TryParse(cinemaWorldMovie.Price, NumberStyles.Any, CultureInfo.InvariantCulture, out cinemaWorldPrice);
+                }
+                
+                if (filmWorldMovie?.Price != null)
+                {
+                    decimal.TryParse(filmWorldMovie.Price, NumberStyles.Any, CultureInfo.InvariantCulture, out filmWorldPrice);
+                }
+                
+           
+                var result = new PriceComparison
+                {
+                    ID = cinemaWorldId,
                     Title = cinemaWorldMovie?.Title ?? filmWorldMovie?.Title ?? string.Empty,
-                    Year = cinemaWorldMovie?.Year ?? filmWorldMovie?.Year ??  string.Empty,
+                    Year = cinemaWorldMovie?.Year ?? filmWorldMovie?.Year ?? string.Empty,
                     Poster = cinemaWorldMovie?.Poster ?? filmWorldMovie?.Poster ?? string.Empty,
                     CinemaWorld = new ProviderPrice
                     {
-                        ID = cinemaWorldMovie?.ID ?? string.Empty,
-                        Price = cinemaWorldMovie?.Price ??  string.Empty,
+                        ID = cinemaWorldId,
+                        Price = cinemaWorldPrice,
                         IsAvailable = cinemaWorldMovie != null
                     },
                     FilmWorld = new ProviderPrice
                     {
-                        ID = filmWorldMovie?.ID ?? string.Empty,
-                        Price = filmWorldMovie?.Price ??  string.Empty,
+                        ID = filmWorldId,
+                        Price = filmWorldPrice,
                         IsAvailable = filmWorldMovie != null
                     }
                 };
-
-                // Determine the best price
-            if (result.CinemaWorld.IsAvailable && result.FilmWorld.IsAvailable)
-{
-    // Parse the price strings into decimals.
-    bool cinemaParsed = decimal.TryParse(result.CinemaWorld.Price, out decimal cinemaPrice);
-    bool filmParsed = decimal.TryParse(result.FilmWorld.Price, out decimal filmPrice);
-
-    // If parsing fails, you might want to handle it (here we default to 0).
-    if (!cinemaParsed)
-    {
-        cinemaPrice = 0m;
-    }
-    if (!filmParsed)
-    {
-        filmPrice = 0m;
-    }
-
-    // Compare the parsed decimal values.
-    if (cinemaPrice <= filmPrice)
-    {
-        result.BestProvider = "CinemaWorld";
-        result.BestPrice = cinemaPrice;
-    }
-    else
-    {
-        result.BestProvider = "FilmWorld";
-        result.BestPrice = filmPrice;
-    }
-}
-else if (result.CinemaWorld.IsAvailable)
-{
-    if (decimal.TryParse(result.CinemaWorld.Price, out decimal cinemaPrice))
-    {
-        result.BestProvider = "CinemaWorld";
-        result.BestPrice = cinemaPrice;
-    }
-    else
-    {
-        // Handle parse failure as needed.
-        result.BestProvider = "CinemaWorld";
-        result.BestPrice = 0m;
-    }
-}
-else
-{
-    if (decimal.TryParse(result.FilmWorld.Price, out decimal filmPrice))
-    {
-        result.BestProvider = "FilmWorld";
-        result.BestPrice = filmPrice;
-    }
-    else
-    {
-        // Handle parse failure as needed.
-        result.BestProvider = "FilmWorld";
-        result.BestPrice = 0m;
-    }
-}
-
+                
+             
+                if (result.CinemaWorld.IsAvailable && result.FilmWorld.IsAvailable)
+                {
+                    if (result.CinemaWorld.Price <= result.FilmWorld.Price)
+                    {
+                        result.BestProvider = "Cinema World";
+                        result.BestPrice = result.CinemaWorld.Price;
+                    }
+                    else
+                    {
+                        result.BestProvider = "Film World";
+                        result.BestPrice = result.FilmWorld.Price;
+                    }
+                }
+                else if (result.CinemaWorld.IsAvailable)
+                {
+                    result.BestProvider = "Cinema World";
+                    result.BestPrice = result.CinemaWorld.Price;
+                }
+                else if (result.FilmWorld.IsAvailable)
+                {
+                    result.BestProvider = "Film World";
+                    result.BestPrice = result.FilmWorld.Price;
+                }
+                
                 return result;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error comparing movie prices");
+                _logger.LogError(ex, "error comparing movie prices");
                 return null;
             }
         }

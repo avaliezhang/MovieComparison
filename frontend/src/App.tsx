@@ -1,40 +1,34 @@
-import React, { Suspense, lazy } from 'react';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import React from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import Header from './components/Header';
-import LoadingSpinner from './components/LoadingSpinner';
-
-
-const MovieListPage = lazy(() => import('./pages/MovieListPage'));
-const MovieDetailPage = lazy(() => import('./pages/MovieDetailPage'));
-
-
+import MovieListPage from './pages/MovieListPage';
+ 
+ 
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 60 * 1000, 
-      retry: 2,
       refetchOnWindowFocus: false,
+      retry: 1,
+      retryDelay: 500,
     },
   },
 });
 
-const App: React.FC = () => {
+function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
-        <div className="min-h-screen bg-gray-50">
-          <Header />
-          <Suspense fallback={<div className="container mx-auto px-4 py-8"><LoadingSpinner /></div>}>
-            <Routes>
-              <Route path="/" element={<MovieListPage />} />
-              <Route path="/movie/:cinemaWorldId/:filmWorldId" element={<MovieDetailPage />} />
-            </Routes>
-          </Suspense>
-        </div>
-      </BrowserRouter>
+      
+      <header className="bg-blue-600 text-white shadow-md">
+      <div className="container mx-auto px-4 py-4 flex flex-col items-center text-center">
+        <h1 className="text-2xl font-bold mb-0">Movie Price Finder</h1>
+        <p className="text-sm opacity-80 mt-0">Find the best movie deals</p>
+      </div>
+      </header>
+        <main>
+          <MovieListPage />
+        </main>
+     
     </QueryClientProvider>
   );
-};
+}
 
 export default App;
