@@ -23,7 +23,6 @@ const MovieCard: React.FC<MovieCardProps> = ({ movie }) => {
     { enabled: showPrice }
   );
  
-console.log(priceData,'priceData');
 
   return (
     <div className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300">
